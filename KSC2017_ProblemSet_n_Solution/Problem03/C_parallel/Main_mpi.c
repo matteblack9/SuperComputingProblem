@@ -111,10 +111,11 @@ int32_t main(int32_t argc, char *argv[])
 
 	if(rankID == 0) printf("\ttarget_length = %ld\n", target_length);
 	int64_t nChunksPerRank = atoi(argv[3]);
-	int64_t nTotalChunks = (nRanks-1) * nChunksPerRank; // rank-0는 일을하지 않는다는 점에 유의한다.
+	//txt파일을 몇번 쪼갤지 결정
+	int64_t nTotalChunks = (nRanks-1) * nChunksPerRank; 
 	if(rankID == 0) printf("\tnTotalChunks = %ld\n", nTotalChunks);
 	
-	int64_t overlap_length = (pattern_length - 1) * (nTotalChunks - 1); // 첫번째 chunk는 overlap이 필요없음. 최대 겹치는게 pattern_length - 1 + 첫번째 idx에있는 문자임.
+	int64_t overlap_length = (pattern_length - 1) * (nTotalChunks - 1); 
 	if(rankID == 0) printf("\toverlap_length = %ld\n", overlap_length);
 	int64_t quotient = (target_length + overlap_length) / nTotalChunks; 
 	if(rankID == 0) printf("\tquotient = %ld\n", quotient);
@@ -122,7 +123,7 @@ int32_t main(int32_t argc, char *argv[])
 	if(rankID == 0) printf("\tremainder = %ld\n\n", remainder);
 
 	int64_t chunkID = 0;
-	int64_t* chunk_length = (int64_t*)malloc((nTotalChunks+1)*sizeof(int64_t)); // 널문자까지 합쳐서 +1 하는것 잊지 말자.
+	int64_t* chunk_length = (int64_t*)malloc((nTotalChunks+1)*sizeof(int64_t)); 
 	int64_t* chunk_start_idx = (int64_t*)malloc((nTotalChunks+1)*sizeof(int64_t)); 
 	int64_t i;
 	for(i=0; i<nTotalChunks; i++)
