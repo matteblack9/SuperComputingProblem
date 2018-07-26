@@ -111,20 +111,34 @@ int32_t main(int32_t argc, char *argv[])
 
 	if(rankID == 0) printf("\ttarget_length = %ld\n", target_length);
 	int64_t nChunksPerRank = atoi(argv[3]);
-	//txt파일을 몇번 쪼갤지 결정
+	//각 rank에 몇개의 문자열 덩어리를 줄것인가 결정
 	int64_t nTotalChunks = (nRanks-1) * nChunksPerRank; 
+	//rank 0은 검사하지않으므로 nRanks - 1
+	//문자열은 총 nTotalChunks개로 쪼개진다.
 	if(rankID == 0) printf("\tnTotalChunks = %ld\n", nTotalChunks);
 	
-	int64_t overlap_length = (pattern_length - 1) * (nTotalChunks - 1); 
+	int64_t overlap_length = (pattern_length - 1) * (nTotalChunks - 1);
+	//쪼개진 덩어리 중 마지막 1개는 겹치는 부분이 없으므로 nTotalChunks - 1
+	//문자열은 최악의 경우 pattern의 첫글자가 하나의 코어 
+	//나머지 글자가 하나의 코어에 분배되는 경우이므로 pattern_length - 1
+
 	if(rankID == 0) printf("\toverlap_length = %ld\n", overlap_length);
 	int64_t quotient = (target_length + overlap_length) / nTotalChunks; 
+	//각 코어당 최악의 경우를 방지하기 위해 덩어리마다 pattern_length - 1을 추가
+	//즉 target_length + overlap_length가 되고 이를 정해진 nChunksPerRank씩
+	//각 코어에 분배하기 위하여 nTotalChunks로 나누어 준다.
+
 	if(rankID == 0) printf("\tquotient = %ld\n", quotient);
 	int64_t remainder = (target_length + overlap_length) - (quotient * nTotalChunks);
+	//나누는 경우에 나누어 떨어지지 않는 경우가 있으므로 나머지를 따로 처리해준다.
+	
 	if(rankID == 0) printf("\tremainder = %ld\n\n", remainder);
 
 	int64_t chunkID = 0;
 	int64_t* chunk_length = (int64_t*)malloc((nTotalChunks+1)*sizeof(int64_t)); 
 	int64_t* chunk_start_idx = (int64_t*)malloc((nTotalChunks+1)*sizeof(int64_t)); 
+	//remainder의 경우를 위해 nTotalChunks에 + 1 을 한다.
+	
 	int64_t i;
 	for(i=0; i<nTotalChunks; i++)
 		chunk_length[i] = quotient;
@@ -132,10 +146,16 @@ int32_t main(int32_t argc, char *argv[])
 		chunk_length[i] += 1;
 	chunk_start_idx[0] = 0;
 	for(i=1; i<nTotalChunks; i++)
-		chunk_start_idx[i] = chunk_start_idx[i-1] + chunk_length[i-1] - (pattern_length-1); // overlap length를 신경쓴것이다.
+		chunk_start_idx[i] = chunk_start_idx[i-1] + chunk_length[i-1] - (pattern_length-1); 
+	//마지막에 - (pattern_length - 1) 을 해줌으로서 첫 번째 chunk를 제외하고
+	//모든 chunk는 이전 chunk의 마지막 문자열의 -4번째 포인터를 chunk_start_idx로 가진다.
+	//따라서 첫번째 chunk를 제외한 모든 chunk 이전 chunk의 마지막 4글자를 무조건 포함한다.
 
 	chunk_start_idx[nTotalChunks] = 0;
 	chunk_length[nTotalChunks] = 0;
+
+	//chunk가 끝났다는 것을 표시하기 위해 nTotalChunk + 1번째 chunk의
+	//start idx 와 length는 모두 0으로 지정한다.
 
 	MPI_Request MPI_req[2];
 	MPI_Status MPI_stat[2];
