@@ -167,7 +167,14 @@ int32_t main(int32_t argc, char *argv[])
 		while(nFinishRanks < nRanks-1)
 		{
 			MPI_Recv(&request_rankID, 1, MPI_INT32_T, MPI_ANY_SOURCE, MPI_tag, MPI_COMM_WORLD, &MPI_stat[0]);
+			//Rank 0 은 다른 Rank들의 송신을 기다린다.
+			//MPI_stat[0]로 다른 Rank가 이제 일을 시작한다는 것을 확인한다.
 			MPI_Isend(&target[chunk_start_idx[chunkID]], chunk_length[chunkID], MPI_CHAR, request_rankID, chunkID, MPI_COMM_WORLD, &MPI_req[1]);
+			//위에서 각 rank가 할당 받는 chunk_length의 길이를 구했었다.
+			//chunkID를 tag로 받는 것에 주의할 것
+			//파일 전체를 읽어서(target) rank 마다 검사할 위치의 시작점을 정해주고 다시 해당 rank에 전송한다.
+			//파일 전체 위치에서 chunk_length[chunkID]길이 만큼만 보낸다는 것을 주의할 것
+			//req[1]을 보냄으로서 검사를 시작해라는 요청을 보낸다.
 			printf("\trequest_rankID = %d\n", request_rankID);
 			printf("\tchunkID = %ld\n", chunkID);
 			printf("\tchunk_start_idx[chunkID] = %ld\n", chunk_start_idx[chunkID]);
@@ -181,14 +188,20 @@ int32_t main(int32_t argc, char *argv[])
 	else
 	{
 		chunk = (char *)malloc(chunk_length[0] * sizeof(char));
+		//chunk 는 문자열임을 기억한다.
 		int64_t chunk_found_count = 0;
 		int64_t call_count = 0;
 		while(chunkID < nTotalChunks)
 		{
+			//선언될 때 chunkID = 0인 상태이다.
 			MPI_Isend(&rankID, 1, MPI_INT32_T, 0, MPI_tag, MPI_COMM_WORLD, &MPI_req[0]);
+			//Rank 0에게 현재 어떤 Rank가 일을 하는지 알려준다.
+			//MPI_requ[0]은 검사를 준비하는 상태라는 의미이다.
 			MPI_Recv(chunk, chunk_length[0], MPI_CHAR, 0, MPI_ANY_TAG, MPI_COMM_WORLD, &MPI_stat[1]);
-			printf("\trank = %d chunk = %s\n", rankID, chunk);
+			//각 rank가 부여받은 chunk 사이즈의 크기는 균일하게 나눈 뒤 나머지를 각 chunk에 1씩 더해 주었으므로
+			//받는 크기는 chunk_length[0]으로 고정한다.
 			chunkID = MPI_stat[1].MPI_TAG;
+			printf("\trank = %d chunk = %s chunkID = %d\n", rankID, chunk, chunkID);
 			if(chunkID < nTotalChunks)
 			{
 				chunk_found_count = do_search(chunk, target_length, 0, chunk_length[chunkID], pattern, pattern_length, BCS, GSS);
@@ -209,6 +222,8 @@ int32_t main(int32_t argc, char *argv[])
 		printf("- [%02d: %s] call_count: %ld\n", rankID, rankName, call_count);
 	}
 	MPI_Reduce(&mpi_found_count, &found_count, 1, MPI_INT64_T, MPI_SUM, 0, MPI_COMM_WORLD);
+	//Rank 0 의 mpi_found_count 변수에 각 프로세서들의 mpi_found_count값을 더해서 모은다.
+
 	free(chunk);
 	free(chunk_length);
 	free(chunk_start_idx);
