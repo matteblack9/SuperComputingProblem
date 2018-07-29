@@ -4,6 +4,9 @@
 #include <mpi.h>
 #include "kmeans.h"
 
+/**
+* kindex와 pt가 N_PT만큼 할당됨.
+*/
 void assignment_step(const PPOINT kmeans, const PPOINT pt,
 		const int istart, const int iend, int *kindex)
 {
@@ -22,6 +25,11 @@ void assignment_step(const PPOINT kmeans, const PPOINT pt,
 	}
 }
 
+/**
+* 가장 크기가 큰 N_PT를 분할하여 작업한다.
+* N_K와 N_PT의 작업을 구분하여 구현해야 한다.
+* kmeans와 num_pt를 모두 합쳐서(ALLREDUCE) 마지막 for-loop를 수행하도록 해여한다.
+*/
 void update_step(PPOINT kmeans, const PPOINT pt,
 		const int istart, const int iend, const int *kindex)
 {
@@ -42,7 +50,11 @@ void update_step(PPOINT kmeans, const PPOINT pt,
 		local_num_pt[idx]++;
 	}
 
-	MPI_Allreduce(local_kmeans, kmeans, N_K*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD);
+	/**
+	* kmeans와 num_pt를 모두 합쳐서(ALLREDUCE) 마지막 for-loop를 수행하도록 해여한다.
+	* local_kmeans를 따로 선언하여 작업(send buffer가 필요)
+	*/
+	MPI_Allreduce(local_kmeans, kmeans, N_K*2, MPI_DOUBLE, MPI_SUM, MPI_COMM_WORLD); // x,y좌표가 있기 때문에 N_K*2임.
 	MPI_Allreduce(local_num_pt, num_pt, N_K, MPI_INT, MPI_SUM, MPI_COMM_WORLD);
 
 	for(i=0; i<N_K; i++) {
