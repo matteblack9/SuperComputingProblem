@@ -22,7 +22,9 @@ int main(int argc, char *argv[])
 //  2. execute k-means clustering
 ///////////////////////////////////////////////////////////////
 	time1 = MPI_Wtime();
-
+	/**
+	* start-end를 만든다.
+	*/
 	int istart = N_PT / nprocs * rank;
 	int   iend = N_PT / nprocs * (rank+1);
 	for(iter=0; iter<100; iter++) {
