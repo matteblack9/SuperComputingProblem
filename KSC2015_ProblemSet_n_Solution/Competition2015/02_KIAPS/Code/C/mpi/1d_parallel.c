@@ -2,6 +2,7 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
 #include <mpi.h>
 
 #define IMIN(a, b) (((a) < (b)) ? (a) : (b))
@@ -9,7 +10,8 @@
     #define M_PI 3.14159265358979323846
 #endif
 
-int np = 30, tne = 512, ne; 
+int np = 5, tne = 10, ne;
+//int np = 30, tne = 10, ne; 
 /* int np = 4, tne = 5, ne;  */
 						   // np: number of nodes in each element
 					       // tne: total number of elements
@@ -31,11 +33,13 @@ double dot_product(double *v, double *u, int n);
 void save_field(double *xx, double *qq, int elem_num, double *roots, int eres);
 void initialize(double *qq, double *xx, double xmax, double xmin, char *init_type);
 double lxmin, lxmax;
+clock_t t_sta, t_end;
 
 int main(int argc, char **argv){
 
-	double tend = 0.5, speed = 1.;
-	// double tend = 1E-1, speed = 1.;
+	//double tend = 1E2, speed = 1.;
+	//double tend = 0.5, speed = 1.;
+	double tend = 1E-1, speed = 1.;
 	char *init_type="mixed2";
 	double *roots, *weights, *ll, *dl, xmin, xmax, 
 		   deltax, jac, xr, xl, cfl, dt, rtime, min_dx;
@@ -241,7 +245,8 @@ int main(int argc, char **argv){
 	}
 
 	// Runge-Kutta 4th order Time integration loop
-	
+
+	t_sta = clock();
 	while(rtime < tend){
 		dt = fmin(dt, tend-rtime);
 
@@ -343,6 +348,8 @@ int main(int argc, char **argv){
 			kk += ne*np;
 		}
 		save_field(gxx, gqq, tne, roots, eres);
+		t_end = clock();
+		printf("Motion time = %f msec\n", (double)(t_end - t_sta)/1000.0);
 		free(gxx);
 		free(gqq);
 		free(buff1);
@@ -424,8 +431,15 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 	MPI_Wait(&ireq1, &status);
 	MPI_Wait(&ireq2, &status);
 
+	printf("rank = %d qb + 2*ne - 1 = %f\n", myrank, *(qb + 2 * ne -1));
+ 
 	ee = 0; // calculating numerical flux (fstar) with periodic boundary condition
 	fstar[ee] = -((qb_start+qb[ee])/2.*speed + fabs(speed)*(qb_start-qb[ee])/2.);
+
+	for(ee=1;ee<ne;ee++){
+		fstar[ee] = -((qb[ne+ee-1]+qb[ee])/2.*speed + fabs(speed)*(qb[ne+ee-1]-qb[ee])/2.);
+		fstar[ne+ee-1] = -fstar[ee];
+	}
 
 	if(myrank == 0){
 		MPI_Isend(fstar,        1, MPI_DOUBLE, nprocs-1, 90, MPI_COMM_WORLD, &ireq3);
@@ -441,13 +455,10 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 		MPI_Irecv(fstar+2*ne-1, 1, MPI_DOUBLE, myrank+1, 90, MPI_COMM_WORLD, &ireq4);
 	}
 
-	for(ee=1;ee<ne;ee++){
-		fstar[ee] = -((qb[ne+ee-1]+qb[ee])/2.*speed + fabs(speed)*(qb[ne+ee-1]-qb[ee])/2.);
-		fstar[ne+ee-1] = -fstar[ee];
-	}
-
 	MPI_Wait(&ireq3, &status);
 	MPI_Wait(&ireq4, &status);
+
+	
 
 	fstar[2*ne-1] *= -1.;
 }
@@ -666,7 +677,7 @@ void save_field(double *xx, double *qq, int elem_num, double *roots, int eres){
 	}
 
 	FILE *ff;
-	ff = fopen("data.txt","w");
+	ff = fopen("data2.txt","w");
 
 	for(ee=0;ee<elem_num;++ee){
 		for(ii=0;ii<eres;++ii){

@@ -11,6 +11,7 @@ int main(int argc, char **argv)
 	int nlevel = 15;
 	double length_x = 1.0, length_y = 1.0;
     int maxiteration = 20;
+	
 	int ngrid;
 	int numgrid_x[nlevel], numgrid_y[nlevel];
 	int matrixDOF[nlevel];  
@@ -73,7 +74,7 @@ int main(int argc, char **argv)
 			restriction(rhs[i],rhs[i-1],numgrid_x[i-1]);
 			printf("[Multigrid] Restriction of RHS done (level %d -> level %d).\n", i, i-1);
 		}
-
+		
 		solution[0][0] = -rhs[0][0]/4.0;
 		printf("[Multigrid] Solution at the coarsest level = %f\n",solution[0][0]);
 	

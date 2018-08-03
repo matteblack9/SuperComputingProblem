@@ -109,30 +109,31 @@ int32_t main(int32_t argc, char *argv[])
 		exit(-1);
 	}
 
-	if(rankID == 0) printf("\ttarget_length = %ld\n", target_length);
+	//if(rankID == 0) printf("\ttarget_length = %ld\n", target_length);
 	int64_t nChunksPerRank = atoi(argv[3]);
 	//각 rank에 몇개의 문자열 덩어리를 줄것인가 결정
 	int64_t nTotalChunks = (nRanks-1) * nChunksPerRank; 
 	//rank 0은 검사하지않으므로 nRanks - 1
 	//문자열은 총 nTotalChunks개로 쪼개진다.
-	if(rankID == 0) printf("\tnTotalChunks = %ld\n", nTotalChunks);
+	//if(rankID == 0) printf("\tnTotalChunks = %ld\n", nTotalChunks);
 	
 	int64_t overlap_length = (pattern_length - 1) * (nTotalChunks - 1);
 	//쪼개진 덩어리 중 마지막 1개는 겹치는 부분이 없으므로 nTotalChunks - 1
 	//문자열은 최악의 경우 pattern의 첫글자가 하나의 코어 
 	//나머지 글자가 하나의 코어에 분배되는 경우이므로 pattern_length - 1
 
-	if(rankID == 0) printf("\toverlap_length = %ld\n", overlap_length);
+	//if(rankID == 0) printf("\toverlap_length = %ld\n", overlap_length);
 	int64_t quotient = (target_length + overlap_length) / nTotalChunks; 
 	//각 코어당 최악의 경우를 방지하기 위해 덩어리마다 pattern_length - 1을 추가
 	//즉 target_length + overlap_length가 되고 이를 정해진 nChunksPerRank씩
 	//각 코어에 분배하기 위하여 nTotalChunks로 나누어 준다.
 
-	if(rankID == 0) printf("\tquotient = %ld\n", quotient);
+	//if(rankID == 0) printf("\tquotient = %ld\n", quotient);
 	int64_t remainder = (target_length + overlap_length) - (quotient * nTotalChunks);
+//	int64_t remainder = (target_length + overlap_length) % nTotalChunks;
 	//나누는 경우에 나누어 떨어지지 않는 경우가 있으므로 나머지를 따로 처리해준다.
 	
-	if(rankID == 0) printf("\tremainder = %ld\n\n", remainder);
+	//if(rankID == 0) printf("\tremainder = %ld\n\n", remainder);
 
 	int64_t chunkID = 0;
 	int64_t* chunk_length = (int64_t*)malloc((nTotalChunks+1)*sizeof(int64_t)); 
@@ -175,10 +176,10 @@ int32_t main(int32_t argc, char *argv[])
 			//파일 전체를 읽어서(target) rank 마다 검사할 위치의 시작점을 정해주고 다시 해당 rank에 전송한다.
 			//파일 전체 위치에서 chunk_length[chunkID]길이 만큼만 보낸다는 것을 주의할 것
 			//req[1]을 보냄으로서 검사를 시작해라는 요청을 보낸다.
-			printf("\trequest_rankID = %d\n", request_rankID);
-			printf("\tchunkID = %ld\n", chunkID);
-			printf("\tchunk_start_idx[chunkID] = %ld\n", chunk_start_idx[chunkID]);
-			printf("\ttarget[chunk_start_idx[chunkID] = %c\n\n", target[chunk_start_idx[chunkID]]);
+			// printf("\trequest_rankID = %d\n", request_rankID);
+			// printf("\tchunkID = %ld\n", chunkID);
+			// printf("\tchunk_start_idx[chunkID] = %ld\n", chunk_start_idx[chunkID]);
+			// printf("\ttarget[chunk_start_idx[chunkID] = %c\n\n", target[chunk_start_idx[chunkID]]);
 			if(chunkID < nTotalChunks)
 				chunkID++;
 			else
@@ -201,7 +202,7 @@ int32_t main(int32_t argc, char *argv[])
 			//각 rank가 부여받은 chunk 사이즈의 크기는 균일하게 나눈 뒤 나머지를 각 chunk에 1씩 더해 주었으므로
 			//받는 크기는 chunk_length[0]으로 고정한다.
 			chunkID = MPI_stat[1].MPI_TAG;
-			printf("\trank = %d chunk = %s chunkID = %d\n", rankID, chunk, chunkID);
+			printf("\trank = %d  chunkID = %d\n", rankID,  chunkID);
 			if(chunkID < nTotalChunks)
 			{
 				chunk_found_count = do_search(chunk, target_length, 0, chunk_length[chunkID], pattern, pattern_length, BCS, GSS);

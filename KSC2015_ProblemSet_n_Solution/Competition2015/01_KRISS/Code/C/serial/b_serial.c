@@ -1,7 +1,7 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
-
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
+#include "mpi.h"
 
 double genvv(double x){
 	return (x*x+pow(x,4)+pow(x,6)+exp(-x*x)+cos(x)+sin(x)+tan(x));
@@ -14,11 +14,15 @@ int main(int argc, char **argv){
 	double xi,xf,dx;
 	double tmr;
 	double *ar, *br;
+	double tic,toc;
 	/* Do not change */
 	n1 = 0;
-	n2 = 100000000;
+	n2 = 8;
 	niter = 3;
 	/* Do not change */
+
+	MPI_Init(&argc, &argv);
+	tic = MPI_Wtime();
 
 	ar = (double*) malloc(sizeof(double)*n2);
 	br = (double*) malloc(sizeof(double)*n2);
@@ -30,12 +34,20 @@ int main(int argc, char **argv){
 	xi = 0.L;
 	xf = 1.L;
 	dx = (xf-xi)/(double)(n2-n1-1);
+
 	for(i=n1;i<n2;i++){
 		br[i] = xi+(double)(i-n1)*dx;
 		ar[i] = 0.0;
 	}
 
+	int ista = 250000;
+
 	for(iter=0;iter<niter;iter++){
+
+		for(i=n1;i<n2;i++){
+			printf("before br[%d] = %lf \n", i, br[i]);
+		}
+
 		for(j=jsta;j<jend;j++){
 			/* Do not change */
 			ar[j] = (br[j-1]+br[j+1])/4.L+br[j]/2.L+1.L/genvv(br[j]);
@@ -46,15 +58,23 @@ int main(int argc, char **argv){
 			br[i] = ar[i];
 			/* Do not change */
 		}
+
+		for(i=n1;i<n2;i++){
+			printf("After br[%d] = %lf \n", i, br[i]);
+		}
 	}
 	tmr = 0.L;
 	for(j=jsta;j<jend;j++){
 		tmr += ar[j];
 	}
 	printf("tmr = %16.7f\n",tmr);
+	toc = MPI_Wtime();
+	printf("%g sec\n",toc-tic);
 	
 	free(ar);
 	free(br);
+	
+	MPI_Finalize();
 	return 0;
 
 }

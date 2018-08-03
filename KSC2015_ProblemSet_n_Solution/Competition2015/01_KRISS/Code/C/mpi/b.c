@@ -1,6 +1,6 @@
-#include<stdio.h>
-#include<stdlib.h>
-#include<math.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <math.h>
 #include "mpi.h"
 
 #define MAX(a,b) ((a)>(b)?(a):(b))
@@ -8,6 +8,7 @@
 
 #define TRUE 1
 #define FALSE 0
+
 
 
 void para_range(int n1,int n2,int nid,int myid,int *ista,int *iend){
@@ -42,7 +43,7 @@ int main (int argc, char **argv)
 
 	/* do not change ------ */
 	n1 = 0;
-	n2 = 100000000;
+	n2 = 8;
 	niter = 3;
 	/* do not change ------ */
 
@@ -52,10 +53,6 @@ int main (int argc, char **argv)
 	xi = 0.L;
 	xf = 1.;
 	dx = (xf-xi)/(double)(n2-n1-1);
-
-	for(i=n1;i<n2;i++){
-		br[i] = xi+(double)(i-n1)*dx;
-	}
 
 	MPI_Init(&argc, &argv);
 	tic = MPI_Wtime();
@@ -74,8 +71,11 @@ int main (int argc, char **argv)
 	iprev = myid - 1;
 	if(myid == nid-1) inext = MPI_PROC_NULL;
 	if(myid == 0) iprev = MPI_PROC_NULL;
+
+	
 	for(i=ista;i<iend;i++){
 		br[i] = xi+ (double)(i-n1)*dx;
+		ar[i] = 0.0;
 	}
 
 	for(iter=0;iter<niter;iter++){
@@ -89,6 +89,10 @@ int main (int argc, char **argv)
 		MPI_Wait(&irv1,&istatus);
 		MPI_Wait(&irv2,&istatus);
 
+		for(i=ista;i<iend;i++){
+			printf("before iter = %d rank = %d br[%d] = %lf \n", iter, myid, i, br[i]);
+		}
+
 		for(j=jsta;j<jend;j++){
 			/*  not change -----{ */
 			ar[j] = (br[j-1]+br[j+1])/4.L + br[j]/2.L + 1.L/genvv(br[j]);
@@ -100,11 +104,18 @@ int main (int argc, char **argv)
 			/*  not change -----} */
 		}
 
+		for(i=ista;i<iend;i++){
+			printf("after iter = %d rank = %d br[%d] = %lf \n", iter, myid, i, br[i]);
+		}
+
 	}
 	ptmr = 0.L;
 	for(j=jsta;j<jend;j++){
 		ptmr += ar[j];
 	}
+
+	printf("rank = %d ptmr = %f \n", myid, ptmr);
+
 	iroot = 0;
 	MPI_Reduce(&ptmr, &tmr, 1, MPI_DOUBLE, MPI_SUM, iroot, MPI_COMM_WORLD);
 	if(myid==0) printf("tmr = %16.6f\n",tmr);

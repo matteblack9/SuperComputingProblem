@@ -1,4 +1,5 @@
-CC=gcc
+CC=mpicc
+CPP = mpic++
 CFLAGS=-O3 
 
 .PHONY: all

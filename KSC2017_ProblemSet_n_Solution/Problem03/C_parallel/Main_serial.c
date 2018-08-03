@@ -97,6 +97,9 @@ int32_t main(int32_t argc, char *argv[])
 // DO NOT EDIT UPPER CODE //
 //==============================================================================================================//
 
+
+
+
 	found_count = do_search(target, target_length, 0, target_length, pattern, pattern_length, BCS, GSS);
 	if(found_count < 0)
 	{

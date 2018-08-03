@@ -2,11 +2,15 @@
 #include <stdio.h>
 #include <math.h>
 #include <string.h>
+#include <time.h>
+
 #ifndef M_PI
     #define M_PI 3.14159265358979323846
 #endif
-/* int np = 30, ne = 512;  */
-int np = 5,  ne = 10; 
+int np = 30, ne = 50;  
+clock_t t_sta, t_end;
+
+//int np = 5,  ne = 10; 
                       // np: number of nodes in each element
 					  // ne: number of elements
 					  // caution: np 20, ne 256 will take approx 10 minutes on a serial job
@@ -136,6 +140,7 @@ int main(int argc, char **argv){
 	for(ii=0;ii<ne*np*np;ii++){
 		mmat[ii] = 0;
 	}
+
 	for(ee=0;ee<ne;ee++){
 		jac = fabs(dx[ee])/2;
 		for(kk=0;kk<np;kk++){
@@ -219,6 +224,8 @@ int main(int argc, char **argv){
 
 	// Runge-Kutta 4th order Time integration loop
 	
+	t_sta = clock();
+
 	while(rtime < tend){
 		dt = fmin(dt, tend-rtime);
 
@@ -275,6 +282,9 @@ int main(int argc, char **argv){
 	printf("-----------------------------------------------\n");
 
 	save_field(xx, qq, ne, roots, eres);
+
+	t_end = clock();
+	printf("Motion time = %f msec\n", (double)(t_end - t_sta)/1000.0);
 
 	free(roots);   
 	free(weights); 
