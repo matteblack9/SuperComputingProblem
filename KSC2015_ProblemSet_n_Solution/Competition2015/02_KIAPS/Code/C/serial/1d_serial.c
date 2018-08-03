@@ -114,7 +114,7 @@ int main(int argc, char **argv){
 	xmax = 10.;
 	deltax = (xmax-xmin)/(double)ne;
 	mesh[ne] = xmax;
-	for(ee=0;ee<ne;++ee){
+	for(ee=0;ee<ne;++ee) {
 		mesh[ee] = xmin+ee*deltax;
 	}
 	
@@ -193,6 +193,7 @@ int main(int argc, char **argv){
 	for(ii=0;ii<ne*np*2;ii++){
 		dv[ii] = 0;
 	}
+
 	for(ee=0;ee<ne;ee++){
 		for(jj=0;jj<np;jj++){
 			// it turn out that mmat is diagonal. i.e., ii != jj, mmat[ee][jj][ii] = 0

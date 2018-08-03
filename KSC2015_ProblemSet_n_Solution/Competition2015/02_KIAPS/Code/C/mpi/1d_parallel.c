@@ -35,6 +35,13 @@ void initialize(double *qq, double *xx, double xmax, double xmin, char *init_typ
 double lxmin, lxmax;
 clock_t t_sta, t_end;
 
+
+/**
+ * 구하고자 하는것은 qq배열이고
+ * ne를 병렬화 해야한다고 문제에 명시되어 있기 때문에
+ * 결국 ne를 나누엇을때, 각 프로세스마다 알맞은 값으로 init하는 것과
+ * 각 프로세스별로 나뉘어진 qq를 필요한 값을 주고받으면서 구해야 한다.
+ */ 
 int main(int argc, char **argv){
 
 	//double tend = 1E2, speed = 1.;
@@ -56,8 +63,8 @@ int main(int argc, char **argv){
 	MPI_Comm_rank(MPI_COMM_WORLD,&myrank);
 	MPI_Comm_size(MPI_COMM_WORLD,&nprocs);
 
-	equal_load(0, tne-1, nprocs, myrank, &istart, &ifinish);
-	ne = ifinish - istart + 1;
+	equal_load(0, tne-1, nprocs, myrank, &istart, &ifinish); // para range와 같은 역할
+	ne = ifinish - istart + 1; // 작업구간의 크기
 
 	// initialize 
 	// fortran index structure array[ii,jj,ee] where size(array) = (np, np, ne)
@@ -130,9 +137,18 @@ int main(int argc, char **argv){
 	xmin = 0.;
 	xmax = 10.;
 	deltax = (xmax-xmin)/(double)tne;
+	/**
+	 * lxim, lxmax를 이용하여 각 구간의 mesh[ee]를 구한다
+	 * ne의 크기가 tne / process의 개수이기 때문에, 
+	 * 각 구간에 맞는 mesh[ee]를 구해야 한다.
+	 * 그리고 mesh[ee]를 이용하여 각 변수들을 초기화 한다.
+	 */
 	lxmin = xmin + (istart)*deltax;
 	lxmax = xmin + (ifinish+1)*deltax;
-	mesh[ne] = lxmax;
+	/**
+	 * mesh[ne]은 마지막 원소가 아니라는점에 유의한다.
+	 */ 
+	mesh[ne] = lxmax; 
 	for(ee=0;ee<ne;++ee){
 		mesh[ee] = lxmin+ee*deltax;
 	}
@@ -325,6 +341,10 @@ int main(int argc, char **argv){
 			gqq[ii] = qq[ii];
 		}
 		kk = ne*np;
+		/**
+		 * gather와 비슷한 역할을 함
+		 * 랭크0에 각 프로세스들 원소들 모음.
+		 */ 
 		for(ii=1;ii<nprocs;ii++){
 			
 			MPI_Irecv(&istart, 1, MPI_INT, ii, 30, MPI_COMM_WORLD, &ireq3);
@@ -354,7 +374,6 @@ int main(int argc, char **argv){
 		free(gqq);
 		free(buff1);
 		free(buff2);
-
 	}
 
 	free(roots);   
@@ -398,6 +417,14 @@ void equal_load(int n1, int n2, int nprocs, int myid, int *istart, int *ifinish)
 	if(n2 < *istart) *ifinish = *istart-1;
 }
 
+/**
+ * 시리얼 코드에선
+ * fstar[0], fstar[2*ne-1]을 먼저 구한 다음
+ * 1~ne-1만큼 반복하면서 사이에있는 원소를 계산한다.
+ * 병렬화 할때는 각 프로세스마다 일정한 크기를 할당하여 계산하는데
+ * 각 프로세스가 tne/프로세스의 개수 만큼 할당되기 때문에
+ * 이부분을 잘 고려해야 한다.
+ */ 
 void interface_flux(double *qq, double *fstar, double *ib, double speed, int nprocs, int myrank){
 	int ii, ee;
 	double qb[2*ne], qb_start;
@@ -413,6 +440,22 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 		qb[ne+ii] = dot_product(ib+np, qq+ii*np, np); // right edge interpolated value of qq at element ii
 	}
 
+	/**
+	 * 각 프로세스 마다 fstar는 2*ne만큼의 메모리를 할당받는다.
+	 * qq, ib와 같은 배열들은 main에서 mesh에서 lmax/min을 통해 각 랭크마다
+	 * 알맞은 값을 가지고 있음.
+	 * 
+	 * 시리얼에서
+	 * fstar[0]은 -((qb[ne+ne-1]+qb[ii])/2*speed ... 이다.
+	 * fstar[ne+ne-1] = -fstar[0]이다.
+	 * 
+	 * mpi에선
+	 * 각 프로세스의 fstar[0]는 fstar[0], fstar[ne], fstar[2*ne].. 이라는 점을 고려해야 한다.
+	 * 그렇기에  
+	 * fstar[ii] = -((qb[ne+ii-1]+qb[ii])/2*speed + fabs(speed)*(qb[ne+ii-1]-qb[ii])/2);
+	 * 이것을 이용하여 fstar[0]를 구해야 한다.
+	 * 그렇기에 이전 랭크에서 qb+2*ne-1을 가져와서 계산한다.
+	 */ 
 	// fstar[0:ne-1] stores numerical flux of the left edge on each elements
 	// fstar[ne:2*ne-1] stores numerical flux of the right edge on each elements
 	if(myrank == 0){
@@ -436,11 +479,22 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 	ee = 0; // calculating numerical flux (fstar) with periodic boundary condition
 	fstar[ee] = -((qb_start+qb[ee])/2.*speed + fabs(speed)*(qb_start-qb[ee])/2.);
 
+<<<<<<< HEAD
 	for(ee=1;ee<ne;ee++){
 		fstar[ee] = -((qb[ne+ee-1]+qb[ee])/2.*speed + fabs(speed)*(qb[ne+ee-1]-qb[ee])/2.);
 		fstar[ne+ee-1] = -fstar[ee];
 	}
 
+=======
+	/**
+	 * 시리얼에서 fstar[ne+ii-1]를 구할때
+	 * ii=1부터 시작하는데,
+	 * mpi에서는 각 랭크마다 일정한 크기의 ne만큼만 계산하기 때문에
+	 * ee(시리얼의 ii)=0일때 계산을 하지 않는다.
+	 * 즉 각 랭크마다 하나씩 계산이 부족하기 때문에
+	 * 다음 랭크에서 fstar를 가져와서 fstar+2*ne-1을 구한다.
+	 */ 
+>>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 	if(myrank == 0){
 		MPI_Isend(fstar,        1, MPI_DOUBLE, nprocs-1, 90, MPI_COMM_WORLD, &ireq3);
 	}
@@ -455,14 +509,36 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 		MPI_Irecv(fstar+2*ne-1, 1, MPI_DOUBLE, myrank+1, 90, MPI_COMM_WORLD, &ireq4);
 	}
 
+<<<<<<< HEAD
 	MPI_Wait(&ireq3, &status);
 	MPI_Wait(&ireq4, &status);
 
 	
 
 	fstar[2*ne-1] *= -1.;
+=======
+	/**
+	 * 여기 for loop에선 fstar[1]부터 fstar[2*ne-2]까지의 값을 계산한다
+	 * 그렇기 때문에, 각 프로세스의 fstar[0]를 구하기 위해선
+	 * qb[ne+ee-1]값이 필요한데, 이것은 이전 랭크의
+	 * qb[2*ne-1]이므로 위에서 send/recv를 통해 얻어온다.
+	 */ 
+	for(ee=1;ee<ne;ee++){
+		fstar[ee] = -((qb[ne+ee-1]+qb[ee])/2.*speed + fabs(speed)*(qb[ne+ee-1]-qb[ee])/2.);
+		fstar[ne+ee-1] = -fstar[ee];
+	}
+
+	MPI_Wait(&ireq3, &status);
+	MPI_Wait(&ireq4, &status);
+
+	fstar[2*ne-1] *= -1.; // -fstar[ii]; 이므로 
+>>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 }
 
+/**
+ * rhs는 딱히 바뀌는게 없음
+ * nprocs와 myrank를 interface_flux에 파라미터로 넘기는 것만 바뀐다.
+ */ 
 void rhs(double *qq, double *rr, double *dv, double *df, double *ib, 
 		double speed, int nprocs, int myrank){
 	int ii, jj, ee;

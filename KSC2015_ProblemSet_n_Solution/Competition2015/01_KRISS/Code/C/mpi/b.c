@@ -59,7 +59,7 @@ int main (int argc, char **argv)
 	MPI_Comm_size(MPI_COMM_WORLD, &nid);
 	MPI_Comm_rank(MPI_COMM_WORLD, &myid);
 
-	para_range(n1,n2,nid,myid,&ista,&iend);
+	para_range(n1,n2,nid,myid,&ista,&iend); // para range를 통해 작업 범위 나눔.
 	printf("rank:%10d ista=%15d iend=%15d\n", myid, ista, iend);
 
 	jsta = ista;
@@ -67,7 +67,8 @@ int main (int argc, char **argv)
 	if(myid==0) jsta = n1+1;
 	if(myid == nid-1) jend = n2-1;
 
-	inext = myid + 1;
+	// send/recv할때 보낼 rank에 사용
+	inext = myid + 1; 
 	iprev = myid - 1;
 	if(myid == nid-1) inext = MPI_PROC_NULL;
 	if(myid == 0) iprev = MPI_PROC_NULL;
@@ -80,34 +81,46 @@ int main (int argc, char **argv)
 
 	for(iter=0;iter<niter;iter++){
 		itag = 101;
-		MPI_Isend(br+iend-1,   1, MPI_DOUBLE, inext, itag, MPI_COMM_WORLD, &isd1);
-		MPI_Isend(br+ista,   1, MPI_DOUBLE, iprev, itag, MPI_COMM_WORLD, &isd2);
-		MPI_Irecv(br+ista-1,   1, MPI_DOUBLE, iprev, itag, MPI_COMM_WORLD, &irv1);
-		MPI_Irecv(br+iend,   1, MPI_DOUBLE, inext, itag, MPI_COMM_WORLD, &irv2);
+		/**
+		 * 각 부분에서 idx-1과 idx+1부분이 필요하기 때문에 
+		 * Isend/Irecv로 비동기적으로 보낸다.
+		 * Wait를 통해 통신이 동작하는지 확인한다.
+		 */
+		MPI_Isend(br+iend-1,   1, MPI_DOUBLE, inext, itag, MPI_COMM_WORLD, &isd1); // inext에 b[j-1]전달
+		MPI_Isend(br+ista,   1, MPI_DOUBLE, iprev, itag, MPI_COMM_WORLD, &isd2); // iprev b[j+1] 전달
+		MPI_Irecv(br+ista-1,   1, MPI_DOUBLE, iprev, itag, MPI_COMM_WORLD, &irv1); // b[j-1] 받음
+		MPI_Irecv(br+iend,   1, MPI_DOUBLE, inext, itag, MPI_COMM_WORLD, &irv2); // b[j+1] 받음
 		MPI_Wait(&isd1,&istatus);
 		MPI_Wait(&isd2,&istatus);
 		MPI_Wait(&irv1,&istatus);
 		MPI_Wait(&irv2,&istatus);
 
+<<<<<<< HEAD
 		for(i=ista;i<iend;i++){
 			printf("before iter = %d rank = %d br[%d] = %lf \n", iter, myid, i, br[i]);
 		}
 
 		for(j=jsta;j<jend;j++){
+=======
+		for(j=jsta;j<jend;j++) {
+>>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 			/*  not change -----{ */
 			ar[j] = (br[j-1]+br[j+1])/4.L + br[j]/2.L + 1.L/genvv(br[j]);
 			/*  not change -----} */
 		}
-		for(i=ista;i<iend;i++){
+		for(i=ista;i<iend;i++) {
 			/*  not change -----{ */
 			br[i] = ar[i];
 			/*  not change -----} */
 		}
+<<<<<<< HEAD
 
 		for(i=ista;i<iend;i++){
 			printf("after iter = %d rank = %d br[%d] = %lf \n", iter, myid, i, br[i]);
 		}
 
+=======
+>>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 	}
 	ptmr = 0.L;
 	for(j=jsta;j<jend;j++){
@@ -117,7 +130,7 @@ int main (int argc, char **argv)
 	printf("rank = %d ptmr = %f \n", myid, ptmr);
 
 	iroot = 0;
-	MPI_Reduce(&ptmr, &tmr, 1, MPI_DOUBLE, MPI_SUM, iroot, MPI_COMM_WORLD);
+	MPI_Reduce(&ptmr, &tmr, 1, MPI_DOUBLE, MPI_SUM, iroot, MPI_COMM_WORLD); // MPI_Reduce로 ptmr 합침
 	if(myid==0) printf("tmr = %16.6f\n",tmr);
 	toc = MPI_Wtime();
 	if(myid==0) printf("%g sec\n",toc-tic);

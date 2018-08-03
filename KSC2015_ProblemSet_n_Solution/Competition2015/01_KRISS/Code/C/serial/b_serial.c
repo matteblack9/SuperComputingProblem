@@ -17,7 +17,11 @@ int main(int argc, char **argv){
 	double tic,toc;
 	/* Do not change */
 	n1 = 0;
+<<<<<<< HEAD
 	n2 = 8;
+=======
+	n2 = 100000000; // 병렬화 해야하는 부분.
+>>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 	niter = 3;
 	/* Do not change */
 
