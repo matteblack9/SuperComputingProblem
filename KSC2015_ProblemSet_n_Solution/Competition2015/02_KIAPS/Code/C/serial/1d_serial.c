@@ -334,6 +334,9 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed){
 	fstar[ii] = -((qb[ne+ne-1]+qb[ii])/2*speed + fabs(speed)*(qb[ne+ne-1]-qb[ii])/2);
 	fstar[ne+ne-1] = -fstar[0];
 	for(ii=1;ii<ne;ii++){
+		//시리얼의 경우 qb[ne+ii-1], fstar[ne + ii -1] 을 한 코어가 저장하고 있으므로 문제가 되지않지만
+		//병렬화 시에는 요소 별로 프로세서를 나누므로 qb[ne+ii-1], fstar[ne + ii -1] 에 접근 불가하다.
+		//따라서 이 부분을 코어마다 통신해주면서 값을 주고 받아야한다.
 		fstar[ii] = -((qb[ne+ii-1]+qb[ii])/2*speed + fabs(speed)*(qb[ne+ii-1]-qb[ii])/2);
 		fstar[ne+ii-1] = -fstar[ii];
 	}
