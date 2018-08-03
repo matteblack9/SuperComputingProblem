@@ -8,7 +8,7 @@
 
 int main(int argc, char **argv) 
 {
-	int nlevel = 15;
+	const int nlevel = 15;
 	double length_x = 1.0, length_y = 1.0;
     int maxiteration = 20;
 	int ngrid;

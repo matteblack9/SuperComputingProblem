@@ -16,7 +16,7 @@ int main(int argc, char **argv){
 	double *ar, *br;
 	/* Do not change */
 	n1 = 0;
-	n2 = 100000000;
+	n2 = 100000000; // 병렬화 해야하는 부분.
 	niter = 3;
 	/* Do not change */
 
