@@ -32,6 +32,13 @@ void save_field(double *xx, double *qq, int elem_num, double *roots, int eres);
 void initialize(double *qq, double *xx, double xmax, double xmin, char *init_type);
 double lxmin, lxmax;
 
+
+/**
+ * 구하고자 하는것은 qq배열이고
+ * ne를 병렬화 해야한다고 문제에 명시되어 있기 때문에
+ * 결국 ne를 나누엇을때, 각 프로세스마다 알맞은 값으로 init하는 것과
+ * 각 프로세스별로 나뉘어진 qq를 필요한 값을 주고받으면서 구해야 한다.
+ */ 
 int main(int argc, char **argv){
 
 	double tend = 0.5, speed = 1.;
