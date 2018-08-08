@@ -2,6 +2,8 @@
     "files.associations": {
         "type_traits": "cpp",
         "math.h": "c",
-        "cmath": "c"
+        "cmath": "c",
+        "algorithm": "c",
+        "limits": "c"
     }
 }

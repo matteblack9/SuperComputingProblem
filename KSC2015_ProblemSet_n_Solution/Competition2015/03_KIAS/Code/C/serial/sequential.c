@@ -26,9 +26,9 @@ float gettime(){
 
 int main(int argc, char **argv){
 	long i, j;
-	long np,niter,maxnp=100000000;
+//	long np,niter,maxnp=100000000;
+	long np,niter,maxnp=100;
 	float *val,**lval;
-
 	niter = atoi(argv[1]);
 
 	float time1, time2;
@@ -52,11 +52,16 @@ int main(int argc, char **argv){
 			val[np++] = ran2(&iseed);
 		}
 	}
+
+	//val에 해당 seed값을 넣어 모든 랜덤값을 생성
+	//np = maxnp*niter
+	
 	for(i=0;i<np;i++){
 		j = val[i]/step;
 		*(lval[j]+nlval[j]) = val[i];
 		nlval[j]++;
 	}
+
 	for(i=0;i<niter;i++){
 		printf("p%d has %ld members ::: %g %g\n", (int)i,nlval[i], step*i, step*(+1));
 	}

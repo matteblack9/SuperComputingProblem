@@ -118,7 +118,9 @@ void Check(float*val, size_t np, float lvalmin, float lvalmax){
 
 int main(int argc, char **argv){
 	long i, j;
-	size_t np,maxnp=100000000;
+
+//	size_t np,maxnp=100000000;
+	size_t np, maxnp = 100;
 	float *val,**lval,lvalmin,lvalmax;
 	float time1, time2;
 

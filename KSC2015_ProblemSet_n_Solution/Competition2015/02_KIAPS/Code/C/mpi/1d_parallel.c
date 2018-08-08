@@ -367,6 +367,15 @@ int main(int argc, char **argv){
 			}
 			kk += ne*np;
 		}
+
+		for(int i = 0; i < tne*np; i++){
+			printf("%f ", gxx[i]);
+		}
+		printf("\n");
+		for(int i = 0; i < tne*np; i++){
+			printf("%f ", gqq[i]);
+		}
+		printf("\n");
 		save_field(gxx, gqq, tne, roots, eres);
 		t_end = clock();
 		printf("Motion time = %f msec\n", (double)(t_end - t_sta)/1000.0);
@@ -473,19 +482,10 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 
 	MPI_Wait(&ireq1, &status);
 	MPI_Wait(&ireq2, &status);
-
-	printf("rank = %d qb + 2*ne - 1 = %f\n", myrank, *(qb + 2 * ne -1));
  
 	ee = 0; // calculating numerical flux (fstar) with periodic boundary condition
 	fstar[ee] = -((qb_start+qb[ee])/2.*speed + fabs(speed)*(qb_start-qb[ee])/2.);
 
-<<<<<<< HEAD
-	for(ee=1;ee<ne;ee++){
-		fstar[ee] = -((qb[ne+ee-1]+qb[ee])/2.*speed + fabs(speed)*(qb[ne+ee-1]-qb[ee])/2.);
-		fstar[ne+ee-1] = -fstar[ee];
-	}
-
-=======
 	/**
 	 * 시리얼에서 fstar[ne+ii-1]를 구할때
 	 * ii=1부터 시작하는데,
@@ -494,7 +494,6 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 	 * 즉 각 랭크마다 하나씩 계산이 부족하기 때문에
 	 * 다음 랭크에서 fstar를 가져와서 fstar+2*ne-1을 구한다.
 	 */ 
->>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 	if(myrank == 0){
 		MPI_Isend(fstar,        1, MPI_DOUBLE, nprocs-1, 90, MPI_COMM_WORLD, &ireq3);
 	}
@@ -509,14 +508,6 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 		MPI_Irecv(fstar+2*ne-1, 1, MPI_DOUBLE, myrank+1, 90, MPI_COMM_WORLD, &ireq4);
 	}
 
-<<<<<<< HEAD
-	MPI_Wait(&ireq3, &status);
-	MPI_Wait(&ireq4, &status);
-
-	
-
-	fstar[2*ne-1] *= -1.;
-=======
 	/**
 	 * 여기 for loop에선 fstar[1]부터 fstar[2*ne-2]까지의 값을 계산한다
 	 * 그렇기 때문에, 각 프로세스의 fstar[0]를 구하기 위해선
@@ -532,7 +523,6 @@ void interface_flux(double *qq, double *fstar, double *ib, double speed, int npr
 	MPI_Wait(&ireq4, &status);
 
 	fstar[2*ne-1] *= -1.; // -fstar[ii]; 이므로 
->>>>>>> a52bcd65976077d8d4ed396d7e5eec526700fb10
 }
 
 /**
